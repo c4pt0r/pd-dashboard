@@ -4,6 +4,9 @@
         <title>pd status</title>
         <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://bootflat.github.io/bootflat/css/bootflat.css">
+
+        <script src="https://code.angularjs.org/1.5.7/angular.min.js"></script>
+        <script src="js/app.js"></script>
         <style>
             .document {
                 padding-top: 50px;
@@ -11,21 +14,14 @@
         </style>
     </head>
 
-    <body>
+    <body ng-app="dashboardApp">
         <div class="container document">
-            <div class="row">
-                <div class="well"> Hello world </div>
-                <div class="progress progress-striped active">
-                    <div class="progress-bar progress-bar-success"
-                        role="progressbar" aria-valuemin="0"
-                        aria-valuemax="100" style="width: 90%">
-                    </div>
-                </div>
+            <div class="row" ng-controller="LogEventController">
+                [[.]]
             </div>
         </div>
 
         <!-- Bootstrap -->
-        <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
         <script src="https://netdna.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
 
         <!-- Bootflat's JS files.-->

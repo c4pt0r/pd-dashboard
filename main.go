@@ -12,7 +12,7 @@ import (
 )
 
 var addr = flag.String("addr", "localhost:2234", "http service address")
-var homeTemplate = template.Must(template.ParseFiles("./templates/index.html"))
+var homeTemplate = template.Must(template.New("index.html").Delims("[[", "]]").ParseFiles("./templates/index.html"))
 
 type MsgType int
 
@@ -77,7 +77,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	homeTemplate.Execute(w, r.Host)
+	homeTemplate.ExecuteTemplate(w, "index.html", r.Host)
 }
 
 func main() {
