@@ -16,8 +16,8 @@
 
     <body ng-app="dashboardApp">
         <div class="container document">
-            <div class="row" ng-controller="LogEventController">
-                [[.]]
+            <div class="row" ng-controller="LogEventController"
+                ng-init="init('[[.]]')">
             </div>
         </div>
 
