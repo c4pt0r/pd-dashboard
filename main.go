@@ -20,13 +20,28 @@ type MsgType int
 
 const (
 	MsgSplit MsgType = iota + 1
-	MsgAddReplica
 	MsgTransLeadership
+	MsgAddReplica
 )
 
 type LogEvent struct {
-	Typ  MsgType `json:"type"`
-	Body string  `json:"msg"`
+	Code MsgType
+	//
+	SplitEvent struct {
+		Region     int
+		NewRegionA int
+		NewRegionB int
+	} `json:",omitempty"`
+
+	AddReplicaEvent struct {
+		Region int
+	} `json:",omitempty"`
+
+	LeaderTransferEvent struct {
+		Region   int
+		NodeFrom int
+		NodeTo   int
+	} `json:",omitempty"`
 }
 
 var mu sync.RWMutex
