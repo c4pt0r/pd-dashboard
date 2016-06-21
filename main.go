@@ -5,6 +5,8 @@ import (
 	"flag"
 	"html/template"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -27,6 +29,9 @@ type LogEvent struct {
 	Body string  `json:"msg"`
 }
 
+var mu sync.RWMutex
+var chs = make(map[*http.Request]chan LogEvent)
+
 var eventCh = make(chan LogEvent)
 
 var upgrader = websocket.Upgrader{}
@@ -47,22 +52,58 @@ func postEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventCh <- evt
 }
 
+// fanout events to clients
+func fanout() {
+	for event := range eventCh {
+		mu.RLock()
+		log.Infof("fanout message: %+v to %d clients", event, len(chs))
+		for _, ch := range chs {
+			select {
+			case ch <- event:
+			default:
+			}
+		}
+		mu.RUnlock()
+	}
+}
+
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
 	defer c.Close()
-	for event := range eventCh {
-		logMsg, err := json.Marshal(event)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Info("receive event:", event)
-		err = c.WriteMessage(websocket.TextMessage, logMsg)
-		if err != nil {
-			log.Error("write:", err)
-			break
+
+	// make sure the client is alive
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	ch := make(chan LogEvent)
+	mu.Lock()
+	chs[r] = ch
+	mu.Unlock()
+
+	defer func() {
+		mu.Lock()
+		log.Info("client is closed, removing channel")
+		close(chs[r])
+		delete(chs, r)
+		mu.Unlock()
+	}()
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := c.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				return
+			}
+		case event := <-ch:
+			logMsg, _ := json.Marshal(event)
+			err = c.WriteMessage(websocket.TextMessage, logMsg)
+			if err != nil {
+				log.Error(err)
+				return
+			}
 		}
 	}
 }
@@ -82,6 +123,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
+	go fanout()
 	r := mux.NewRouter()
 	r.HandleFunc("/ws", wsHandler)
 	r.HandleFunc("/post", postEventHandler)
