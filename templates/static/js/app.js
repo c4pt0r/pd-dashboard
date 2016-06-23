@@ -1,6 +1,6 @@
 'use strict';
 
-var dashboardApp = angular.module('dashboardApp', []);
+var dashboardApp = angular.module('dashboardApp', ['ngAnimate']);
 
 const eventRowTmpl = `
 <div class="jumbotron" ng-model="event">
@@ -24,8 +24,8 @@ const eventRowTmpl = `
                 <!-- leader transfer message -->
                 <div ng-if="event.Code == 2">
                     Transfer leadership of
-                    <span class="label label-success"> {{ event.LeaderTransferEvent.Region }}</span> from 
-                    <b>Node-{{ event.LeaderTransferEvent.NodeFrom }}</b> to <b> Node-{{ event.LeaderTransferEvent.NodeTo }}</b>
+                    <span class="label label-success">Region{{ event.LeaderTransferEvent.Region }}</span> from 
+                    <b>Node{{ event.LeaderTransferEvent.NodeFrom }}</b> to <b> Node{{ event.LeaderTransferEvent.NodeTo }}</b>
                 </div>
 
                 <!-- add replica message -->
@@ -51,33 +51,29 @@ dashboardApp.directive('eventRow', function() {
 });
 
 
-dashboardApp.controller('LogEventController', function LogEventController($scope) {
-    $scope.test = {
-        Code: 3, 
-        AddReplicaEvent : {
-            Region : 1
-        },
-        SplitEvent : {
-            Region: 1,
-            NewRegionA:2,
-            NewRegionB:3
-        }
-    };
+dashboardApp.controller('LogEventController', function LogEventController($scope, $timeout) {
+
+    $scope.logs = [];
 
     $scope.init = function(wsHost) {
-        var ws = new WebSocket("ws://" + wsHost + "/ws");
-        ws.onopen = function(evt) {
-            console.log("OPEN");
-        }
-        ws.onclose = function(evt) {
-            console.log("CLOSE");
-            ws = null;
-        }
-        ws.onmessage = function(evt) {
-            console.log("RESPONSE: " + evt.data);
-        }
-        ws.onerror = function(evt) {
-            console.log("ERROR: " + evt.data);
-        }
+            var ws = new WebSocket("ws://" + wsHost + "/ws");
+
+            ws.onopen = function(evt) {
+            }
+
+            ws.onclose = function(evt) {
+                ws = null;
+            }
+
+            ws.onmessage = function(evt) {
+                $scope.$apply(function () {
+                    var data = JSON.parse(evt.data);
+                    $scope.logs.unshift(data);
+                });
+            }
+
+            ws.onerror = function(evt) {
+            }
     };
+
 });

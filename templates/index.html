@@ -8,6 +8,7 @@
         <link rel="stylesheet" href="css/colors.min.css">
 
         <script src="https://code.angularjs.org/1.5.7/angular.min.js"></script>
+        <script src="https://code.angularjs.org/1.5.7/angular-animate.min.js"></script>
         <script src="js/app.js"></script>
         <style>
             body {
@@ -23,6 +24,42 @@
                 font-size: 24px;
                 line-height: 30px;
             }
+
+           
+/**/
+.wrapperInput{position:absolute;top:30px;}
+/**/
+
+.wave-enter-setup, .wave-leave-setup {
+  -webkit-transition:all cubic-bezier(0.250, 0.460, 0.450, 0.940) .5s;
+  -moz-transition:all cubic-bezier(0.250, 0.460, 0.450, 0.940) 0.5s;
+  -o-transition:all cubic-bezier(0.250, 0.460, 0.450, 0.940) 0.5s;
+  transition:all cubic-bezier(0.250, 0.460, 0.450, 0.940) .5s;
+    line-height:100%;
+}
+
+.wave-enter-setup {
+  position:relative;
+  left:100%;
+ line-height:100%;
+}
+
+
+.wave-enter-start {
+  left:0;
+line-height:100%;
+}
+
+.wave-leave-setup {
+  position:absolute;
+  left:0;
+line-height: 100%;
+}
+
+.wave-leave-start {
+  left:-100%;
+  line-height: 10%;
+}
         </style>
     </head>
 
@@ -34,7 +71,9 @@
                 ng-init="init('[[.]]')">
 
                 <!-- log template -->                
-                <event-row event="test"></event-row>
+                <li ng-repeat="log in logs" ng-animate="'wave'"> 
+                    <event-row event="log"></event-row>
+                </li>
 
             </div>
         </div>

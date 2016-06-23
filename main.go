@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -27,20 +28,20 @@ const (
 type LogEvent struct {
 	Code MsgType
 	//
-	SplitEvent struct {
+	SplitEvent *struct {
 		Region     int
 		NewRegionA int
 		NewRegionB int
 	} `json:",omitempty"`
 
-	AddReplicaEvent struct {
-		Region int
-	} `json:",omitempty"`
-
-	LeaderTransferEvent struct {
+	LeaderTransferEvent *struct {
 		Region   int
 		NodeFrom int
 		NodeTo   int
+	} `json:",omitempty"`
+
+	AddReplicaEvent *struct {
+		Region int
 	} `json:",omitempty"`
 }
 
@@ -53,13 +54,17 @@ var upgrader = websocket.Upgrader{}
 
 // TODO: just for test/debug, remove it when production ready
 func postEventHandler(w http.ResponseWriter, r *http.Request) {
-	event := r.URL.Query().Get("event")
+	event, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
 	if len(event) == 0 {
 		http.Error(w, "parameter 'event' is required", 500)
 		return
 	}
 	var evt LogEvent
-	err := json.Unmarshal([]byte(event), &evt)
+	err = json.Unmarshal(event, &evt)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
