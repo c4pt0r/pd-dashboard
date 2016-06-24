@@ -29,7 +29,8 @@ const eventRowTmpl = `
             <div class="col-sm-1 log-img">
                 <i class="fa fa-scissors fa-2x" ng-if="event.code == 1"></i>
                 <i class="fa fa-exchange fa-2x" ng-if="event.code == 2"></i>
-                <i class="fa fa-refresh fa-2x" ng-if="event.code == 3"></i>
+                <i class="fa fa-refresh fa-2x" ng-if="event.code == 3 && event.status !=2"></i>
+                <i class="fa fa-check fa-2x bg-green" ng-if="event.code == 3 && event.status ==2"></i>
                 <i class="fa fa-trash fa-2x" ng-if="event.code == 4"></i>
             </div>
             <div class="col-md-10 log-msg">
@@ -51,13 +52,15 @@ const eventRowTmpl = `
 
                 <!-- add replica message -->
                 <div ng-if="event.code == 3">
-                    Add Replica for <span class="label {{ colors[event.add_replica_event.region % colors.length] }}"> Region {{ event.add_replica_event.region }} </span>
+                    Add Replica for <span class="label {{ colors[event.add_replica_event.region % colors.length] }}"> Region {{ event.add_replica_event.region }} </span> 
+                    <label ng-if="event.status == 2" class="label label-success">Finished</label>
                 </div>
 
                 <!-- add replica message -->
                 <div ng-if="event.code == 4">
                     Remove Replica for <span class="label {{ colors[event.remove_replica_event.region % colors.length] }}"> Region {{ event.remove_replica_event.region }} </span>
                 </div>
+
 
             </div>
         </div>
@@ -98,18 +101,7 @@ dashboardApp.controller('LogEventController', function LogEventController($scope
                 console.log(evt.data);
                 $scope.$apply(function () {
                     var data = JSON.parse(evt.data);
-                    if (data.status == 2) {
-                        if (data.code == 3) {
-                            for (var i = 0; i < $scope.logs.length; i++) {
-                                if ($scope.logs[i].status == 1 && $scope.logs[i].add_replica_event.region == data.add_replica_event.region) {
-                                    console.log("found replica event " + i);
-                                    $scope.logs[i].status = 2;
-                                }
-                            }
-                        }
-                    } else {
-                        $scope.logs.unshift(data);
-                    }
+                    $scope.logs.unshift(data);
 
                     if ($scope.logs.length > 200) {
                         $scope.logs.pop();
