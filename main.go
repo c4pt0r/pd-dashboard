@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"net/http"
@@ -15,34 +16,50 @@ import (
 )
 
 var addr = flag.String("addr", "localhost:2234", "http service address")
+var pdAddr = flag.String("pd", "localhost:9090", "pd restful api addr, without http://")
 var homeTemplate = template.Must(template.New("index.html").Delims("[[", "]]").ParseFiles("./templates/index.html"))
 
-type MsgType int
+type statusType byte
 
 const (
-	MsgSplit MsgType = iota + 1
-	MsgTransLeadership
-	MsgAddReplica
+	evtStart statusType = iota + 1
+	evtEnd
 )
 
+type msgType byte
+
+const (
+	msgSplit msgType = iota + 1
+	msgTransferLeader
+	msgAddReplica
+	msgRemoveReplica
+)
+
+// LogEvent is operator log event.
 type LogEvent struct {
-	Code MsgType
-	//
-	SplitEvent *struct {
-		Region     int
-		NewRegionA int
-		NewRegionB int
-	} `json:",omitempty"`
+	ID     uint64     `json:"id"`
+	Code   msgType    `json:"code"`
+	Status statusType `json:"status"`
 
-	LeaderTransferEvent *struct {
-		Region   int
-		NodeFrom int
-		NodeTo   int
-	} `json:",omitempty"`
+	SplitEvent struct {
+		Region uint64 `json:"region"`
+		Left   uint64 `json:"left"`
+		Right  uint64 `json:"right"`
+	} `json:"split_event,omitempty"`
 
-	AddReplicaEvent *struct {
-		Region int
-	} `json:",omitempty"`
+	AddReplicaEvent struct {
+		Region uint64 `json:"region"`
+	} `json:"add_replica_event,omitempty"`
+
+	RemoveReplicaEvent struct {
+		Region uint64 `json:"region"`
+	} `json:"remove_replica_event,omitempty"`
+
+	TransferLeaderEvent struct {
+		Region    uint64 `json:"region"`
+		StoreFrom uint64 `json:"store_from"`
+		StoreTo   uint64 `json:"store_to"`
+	} `json:"transfer_leader_event,omitempty"`
 }
 
 var mu sync.RWMutex
@@ -85,6 +102,58 @@ func fanout() {
 		}
 		mu.RUnlock()
 	}
+}
+
+func fetchEventFeed() {
+	var offset uint64 = 0
+	for {
+		time.Sleep(1 * time.Second)
+		// fetch the feeds
+		url := fmt.Sprintf("http://%s/api/v1/feed?offset=%d", *pdAddr, offset)
+		resp, err := http.Get(url)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+
+		log.Info(string(b))
+		var events []LogEvent
+		if err := json.Unmarshal(b, &events); err != nil {
+			log.Error(err)
+			continue
+		}
+
+		for _, event := range events {
+			log.Info(event)
+			if offset < event.ID {
+				offset = event.ID
+			}
+			eventCh <- event
+		}
+	}
+}
+
+func fetchRecentEvents() []LogEvent {
+	url := fmt.Sprintf("http://%s/api/v1/events", *pdAddr)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	dec := json.NewDecoder(resp.Body)
+	var events []LogEvent
+	if err := dec.Decode(&events); err != nil {
+		log.Error(err)
+		return nil
+	}
+	return events
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -144,6 +213,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 	go fanout()
+	go fetchEventFeed()
 	r := mux.NewRouter()
 	r.HandleFunc("/ws", wsHandler)
 	r.HandleFunc("/post", postEventHandler)

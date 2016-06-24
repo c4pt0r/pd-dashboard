@@ -2,35 +2,61 @@
 
 var dashboardApp = angular.module('dashboardApp', ['ngAnimate']);
 
+// region bg colors
+const colors = [
+    "bg-navy",
+    "bg-blue",
+    "bg-aqua",
+    "bg-teal",
+    "bg-olive",
+    "bg-green",
+    "bg-lime",
+    "bg-yellow",
+    "bg-orange",
+    "bg-red",
+    "bg-maroon",
+    "bg-fuchsia",
+    "bg-purple",
+    "bg-black",
+    "bg-silver",
+    "bg-gray"
+];
+
 const eventRowTmpl = `
 <div class="jumbotron" ng-model="event">
     <div class="jumbotron-contents">
         <div class="row">
             <div class="col-sm-1 log-img">
-                <i class="fa fa-scissors fa-2x" ng-if="event.Code == 1"></i>
-                <i class="fa fa-exchange fa-2x" ng-if="event.Code == 2"></i>
-                <i class="fa fa-refresh fa-spin fa-2x fa-fw" ng-if="event.Code == 3"></i>
+                <i class="fa fa-scissors fa-2x" ng-if="event.code == 1"></i>
+                <i class="fa fa-exchange fa-2x" ng-if="event.code == 2"></i>
+                <i class="fa fa-refresh fa-2x" ng-if="event.code == 3"></i>
+                <i class="fa fa-trash fa-2x" ng-if="event.code == 4"></i>
             </div>
             <div class="col-md-10 log-msg">
 
                 <!-- split message -->
-                <div ng-if="event.Code == 1">
+                <div ng-if="event.code == 1">
                     Split
-                    <span class="label label-success">Region{{ event.SplitEvent.Region  }}</span> into
-                    <span class="label label-success">Region{{ event.SplitEvent.NewRegionA }}</span> and
-                    <span class="label label-success">Region{{ event.SplitEvent.NewRegionB }}</span>
+                    <span class="label {{ colors[event.split_event.region % colors.length] }}">Region {{ event.split_event.region  }}</span> into
+                    <span class="label {{ colors[event.split_event.left % colors.length] }}">Region {{ event.split_event.left }}</span> and
+                    <span class="label {{ colors[event.split_event.right % colors.length] }}">Region {{ event.split_event.right }}</span>
                 </div>
 
                 <!-- leader transfer message -->
-                <div ng-if="event.Code == 2">
+                <div ng-if="event.code == 2">
                     Transfer leadership of
-                    <span class="label label-success">Region{{ event.LeaderTransferEvent.Region }}</span> from 
-                    <b>Node{{ event.LeaderTransferEvent.NodeFrom }}</b> to <b> Node{{ event.LeaderTransferEvent.NodeTo }}</b>
+                    <span class="label {{ colors[event.transfer_leader_event.region % colors.length] }}">Region {{ event.transfer_leader_event.region }}</span> from 
+                    <b>Node {{ event.transfer_leader_event.store_from }}</b> to <b> Node {{ event.transfer_leader_event.store_to }}</b>
                 </div>
 
                 <!-- add replica message -->
-                <div ng-if="event.Code == 3">
-                    Add Replica for <span class="label label-success"> Region{{ event.AddReplicaEvent.Region }} </span>
+                <div ng-if="event.code == 3">
+                    Add Replica for <span class="label {{ colors[event.add_replica_event.region % colors.length] }}"> Region {{ event.add_replica_event.region }} </span>
+                </div>
+
+                <!-- add replica message -->
+                <div ng-if="event.code == 4">
+                    Remove Replica for <span class="label {{ colors[event.remove_replica_event.region % colors.length] }}"> Region {{ event.remove_replica_event.region }} </span>
                 </div>
 
             </div>
@@ -44,6 +70,7 @@ dashboardApp.directive('eventRow', function() {
         restrict: 'AE',
         scope: {
             event: '=',
+            colors: '='
         },
         replace: 'true',
         template: eventRowTmpl
@@ -53,12 +80,14 @@ dashboardApp.directive('eventRow', function() {
 
 dashboardApp.controller('LogEventController', function LogEventController($scope, $timeout) {
 
+    $scope.colors = colors;
     $scope.logs = [];
 
     $scope.init = function(wsHost) {
             var ws = new WebSocket("ws://" + wsHost + "/ws");
 
             ws.onopen = function(evt) {
+                console.log("on open")
             }
 
             ws.onclose = function(evt) {
@@ -66,9 +95,25 @@ dashboardApp.controller('LogEventController', function LogEventController($scope
             }
 
             ws.onmessage = function(evt) {
+                console.log(evt.data);
                 $scope.$apply(function () {
                     var data = JSON.parse(evt.data);
-                    $scope.logs.unshift(data);
+                    if (data.status == 2) {
+                        if (data.code == 3) {
+                            for (var i = 0; i < $scope.logs.length; i++) {
+                                if ($scope.logs[i].status == 1 && $scope.logs[i].add_replica_event.region == data.add_replica_event.region) {
+                                    console.log("found replica event " + i);
+                                    $scope.logs[i].status = 2;
+                                }
+                            }
+                        }
+                    } else {
+                        $scope.logs.unshift(data);
+                    }
+
+                    if ($scope.logs.length > 200) {
+                        $scope.logs.pop();
+                    }
                 });
             }
 
