@@ -49,10 +49,12 @@ type LogEvent struct {
 
 	AddReplicaEvent struct {
 		Region uint64 `json:"region"`
+		Store  uint64 `json:"store"`
 	} `json:"add_replica_event,omitempty"`
 
 	RemoveReplicaEvent struct {
 		Region uint64 `json:"region"`
+		Store  uint64 `json:"store"`
 	} `json:"remove_replica_event,omitempty"`
 
 	TransferLeaderEvent struct {
