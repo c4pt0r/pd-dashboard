@@ -52,13 +52,15 @@ const eventRowTmpl = `
 
                 <!-- add replica message -->
                 <div ng-if="event.code == 3">
-                    Add Replica for <span class="label {{ colors[event.add_replica_event.region % colors.length] }}"> Region {{ event.add_replica_event.region }} </span> 
+                    Add Replica for <span class="label {{ colors[event.add_replica_event.region % colors.length] }}"> Region {{ event.add_replica_event.region }}</span> 
+                    to <b> Node {{ event.add_replica_event.store }}</b>
                     <label ng-if="event.status == 2" class="label label-success">Finished</label>
                 </div>
 
-                <!-- add replica message -->
+                <!-- remove replica message -->
                 <div ng-if="event.code == 4">
-                    Remove Replica for <span class="label {{ colors[event.remove_replica_event.region % colors.length] }}"> Region {{ event.remove_replica_event.region }} </span>
+                    Remove Replica for <span class="label {{ colors[event.remove_replica_event.region % colors.length] }}"> Region {{ event.remove_replica_event.region }}</span> 
+                    from <b> Node {{ event.remove_replica_event.store }}</b>
                 </div>
 
 
