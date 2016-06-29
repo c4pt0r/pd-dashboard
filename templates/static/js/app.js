@@ -29,11 +29,11 @@ const eventRowTmpl = `
             <div class="col-sm-1 log-img">
                 <i class="fa fa-scissors fa-2x" ng-if="event.code == 1"></i>
                 <i class="fa fa-exchange fa-2x" ng-if="event.code == 2 && event.status !=2"></i>
-                <i class="fa fa-check fa-2x bg-green" ng-if="event.code == 2 && event.status ==2"></i>
+                <i class="fa fa-check fa-2x bg-blue" ng-if="event.code == 2 && event.status ==2"></i>
                 <i class="fa fa-refresh fa-2x" ng-if="event.code == 3 && event.status !=2"></i>
                 <i class="fa fa-check fa-2x bg-green" ng-if="event.code == 3 && event.status ==2"></i>
                 <i class="fa fa-trash fa-2x" ng-if="event.code == 4 && event.status !=2"></i>
-                <i class="fa fa-check fa-2x bg-green" ng-if="event.code == 4 && event.status ==2"></i>
+                <i class="fa fa-check fa-2x bg-red" ng-if="event.code == 4 && event.status ==2"></i>
             </div>
             <div class="col-md-10 log-msg">
 
@@ -96,7 +96,6 @@ dashboardApp.controller('LogEventController', function LogEventController($scope
             var ws = new WebSocket("ws://" + wsHost + "/ws");
 
             ws.onopen = function(evt) {
-                console.log("on open")
             }
 
             ws.onclose = function(evt) {
@@ -109,7 +108,7 @@ dashboardApp.controller('LogEventController', function LogEventController($scope
                     var data = JSON.parse(evt.data);
                     $scope.logs.unshift(data);
 
-                    if ($scope.logs.length > 200) {
+                    if ($scope.logs.length > 2000) {
                         $scope.logs.pop();
                     }
                 });
