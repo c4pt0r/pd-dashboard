@@ -28,10 +28,12 @@ const eventRowTmpl = `
         <div class="row">
             <div class="col-sm-1 log-img">
                 <i class="fa fa-scissors fa-2x" ng-if="event.code == 1"></i>
-                <i class="fa fa-exchange fa-2x" ng-if="event.code == 2"></i>
+                <i class="fa fa-exchange fa-2x" ng-if="event.code == 2 && event.status !=2"></i>
+                <i class="fa fa-check fa-2x bg-blue" ng-if="event.code == 2 && event.status ==2"></i>
                 <i class="fa fa-refresh fa-2x" ng-if="event.code == 3 && event.status !=2"></i>
                 <i class="fa fa-check fa-2x bg-green" ng-if="event.code == 3 && event.status ==2"></i>
-                <i class="fa fa-trash fa-2x" ng-if="event.code == 4"></i>
+                <i class="fa fa-trash fa-2x" ng-if="event.code == 4 && event.status !=2"></i>
+                <i class="fa fa-check fa-2x bg-red" ng-if="event.code == 4 && event.status ==2"></i>
             </div>
             <div class="col-md-10 log-msg">
 
@@ -48,6 +50,7 @@ const eventRowTmpl = `
                     Transfer leadership of
                     <span class="label {{ colors[event.transfer_leader_event.region % colors.length] }}">Region {{ event.transfer_leader_event.region }}</span> from 
                     <b>Node {{ event.transfer_leader_event.store_from }}</b> to <b> Node {{ event.transfer_leader_event.store_to }}</b>
+                    <label ng-if="event.status == 2" class="label label-success">Finished</label>
                 </div>
 
                 <!-- add replica message -->
@@ -61,6 +64,7 @@ const eventRowTmpl = `
                 <div ng-if="event.code == 4">
                     Remove Replica for <span class="label {{ colors[event.remove_replica_event.region % colors.length] }}"> Region {{ event.remove_replica_event.region }}</span> 
                     from <b> Node {{ event.remove_replica_event.store }}</b>
+                    <label ng-if="event.status == 2" class="label label-success">Finished</label>
                 </div>
 
 
@@ -92,7 +96,6 @@ dashboardApp.controller('LogEventController', function LogEventController($scope
             var ws = new WebSocket("ws://" + wsHost + "/ws");
 
             ws.onopen = function(evt) {
-                console.log("on open")
             }
 
             ws.onclose = function(evt) {
@@ -105,7 +108,7 @@ dashboardApp.controller('LogEventController', function LogEventController($scope
                     var data = JSON.parse(evt.data);
                     $scope.logs.unshift(data);
 
-                    if ($scope.logs.length > 200) {
+                    if ($scope.logs.length > 2000) {
                         $scope.logs.pop();
                     }
                 });

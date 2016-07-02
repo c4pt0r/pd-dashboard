@@ -67,7 +67,7 @@ type LogEvent struct {
 var mu sync.RWMutex
 var chs = make(map[*http.Request]chan LogEvent)
 
-var eventCh = make(chan LogEvent)
+var eventCh = make(chan LogEvent, 10)
 
 var upgrader = websocket.Upgrader{}
 
@@ -125,7 +125,6 @@ func fetchEventFeed() {
 			continue
 		}
 
-		log.Info(string(b))
 		var events []LogEvent
 		if err := json.Unmarshal(b, &events); err != nil {
 			log.Error(err)
@@ -169,7 +168,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	ch := make(chan LogEvent)
+	ch := make(chan LogEvent, 10)
 	mu.Lock()
 	chs[r] = ch
 	mu.Unlock()
@@ -189,7 +188,12 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case event := <-ch:
-			logMsg, _ := json.Marshal(event)
+			logMsg, err := json.Marshal(event)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
 			err = c.WriteMessage(websocket.TextMessage, logMsg)
 			if err != nil {
 				log.Error(err)
